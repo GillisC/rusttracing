@@ -3,6 +3,9 @@ use indicatif::{ProgressBar, ProgressStyle};
 
 // modules
 mod vec3;
+mod color;
+
+use crate::color::{Color, write_color};
 
 fn main() {
     let width: u32 = 1000;
@@ -23,14 +26,10 @@ fn main() {
             let r = f64::from(x) / f64::from(width - 1);
             let g = f64::from(y) / f64::from(height - 1);
             let b = 0.0;
-            let a = 255.0;
-
-            let ir = 255.999 * r;
-            let ig = 255.999 * g;
-            let ib = 255.999 * b;
-
-            img.put_pixel(x, y, Rgba([ir as u8, ig as u8, ib as u8, a as u8]));
-
+           
+            let pixel_color = Color::build(r, g, b);
+            write_color(x, y, &mut img, &pixel_color);
+            
             pb.inc(1);
         }
     }
