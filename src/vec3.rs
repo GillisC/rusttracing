@@ -41,6 +41,35 @@ impl Vec3 {
         self.x * self.x + self.y * self.y + self.z * self.z
     }
 
+    /// Returns true if the all the vectors components are near zero.
+    pub fn near_zero(&self) -> bool {
+        let s = 1e-8;
+        self.x.abs() < s && self.y.abs() < s && self.z.abs() < s
+    }
+
+    pub fn reflect(&self, normal: &Vec3) -> Self {
+        *self - 2.0 * Vec3::dot(self, normal) * *normal
+    }
+
+
+    /// Returns a new `Vec3` with random components in the range [0.0, 1.0).
+    pub fn random() -> Self {
+        Vec3::build(
+            rand::random::<f32>(),
+            rand::random::<f32>(),
+            rand::random::<f32>()
+        )
+    }
+
+    /// Returns a new `Vec3` with random components in the range [min, max).
+    pub fn random_range(min: f32, max: f32) -> Self {
+        Vec3::build(
+            rand::random::<f32>() * (max - min) + min,
+            rand::random::<f32>() * (max - min) + min,
+            rand::random::<f32>() * (max - min) + min
+        )
+    }
+
     pub fn dot(u: &Vec3, v: &Vec3) -> f32 {
         return u.x * v.x + u.y * v.y + u.z * v.z;
     }
@@ -57,6 +86,27 @@ impl Vec3 {
         *v / v.length()
     }
 
+    /// Returns a new `Vec3` that is a random unit vector.
+    pub fn random_unit_vector() -> Self {
+        loop {
+            let v = Vec3::random_range(-1.0, 1.0);
+            let len_squared = v.length_squared();
+            if 1e-160 < len_squared && len_squared < 1.0 {
+                return v / len_squared.sqrt();
+            }
+        }
+    }
+
+    /// Returns a new `Vec3` that is a random unit vector in the hemisphere defined by the normal.
+    /// This is used for generating random directions for diffuse reflection.
+    pub fn random_on_hemisphere(normal: &Vec3) -> Self {
+        let on_unit_sphere = Vec3::random_unit_vector();
+        if Vec3::dot(&on_unit_sphere, normal) > 0.0 {
+            on_unit_sphere
+        } else {
+            -on_unit_sphere
+        }
+    }
 }
 
 impl Add for Vec3 {
@@ -107,6 +157,18 @@ impl Neg for Vec3 {
             x: -self.x,
             y: -self.y,
             z: -self.z,
+        }
+    }
+}
+
+impl Mul<Vec3> for f32 {
+    type Output = Vec3;
+
+    fn mul(self, rhs: Vec3) -> Vec3 {
+        Vec3 {
+            x: self * rhs.x,
+            y: self * rhs.y,
+            z: self * rhs.z,
         }
     }
 }

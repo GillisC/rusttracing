@@ -13,6 +13,7 @@ pub struct Camera {
     pub aspect_ratio: f32,
     pub image_width: u32,
     pub samples_per_pixel: u32,
+    pub max_depth: u32,
 
     image_height: u32,
     pixel_samples_scale: f32,
@@ -24,11 +25,13 @@ pub struct Camera {
 
 impl Camera {
     pub fn new(aspect_ratio: f32, image_width: u32) -> Self {
+        // TODO: Create a config struct for camera parameters
         let image_height = (image_width as f32 / aspect_ratio) as u32;
         let origin = Point3::new();
-        let samples_per_pixel = 10;
+        let samples_per_pixel = 100;
         let focal_length = 1.0;
         let viewport_height = 2.0;
+        let max_depth = 50;
 
         let pixel_samples_scale = 1.0 / samples_per_pixel as f32;
         let viewport_width = viewport_height * aspect_ratio;
@@ -49,7 +52,8 @@ impl Camera {
         Self {
             aspect_ratio,
             image_width,
-            samples_per_pixel: 10,
+            samples_per_pixel,
+            max_depth,
             image_height,
             pixel_samples_scale, 
             origin,
@@ -77,7 +81,7 @@ impl Camera {
                 // For each pixel, we will sample multiple rays 
                 for _ in 0..self.samples_per_pixel {
                     let ray = self.get_ray(x, y);
-                    pixel_color += self.ray_color(&ray, &world);
+                    pixel_color += self.ray_color(&ray, &world, self.max_depth);
                 }
 
                 write_color(x, y, &mut img, &( pixel_color * self.pixel_samples_scale ));
@@ -89,10 +93,23 @@ impl Camera {
     } 
 
 
-    fn ray_color(&self, ray: &Ray, world: &HittableList) -> Color {
+    fn ray_color(&self, ray: &Ray, world: &HittableList, depth: u32) -> Color {
+        // If the recursion depth is exceeded, return black
+        if depth <= 0 {
+            return Color::new();
+        }
+
         let mut rec = HitRecord::new();
-        if world.hit(&ray, &Interval::with_bounds(0.0, f32::INFINITY), &mut rec) {
-            return (rec.normal + Color::build(1.0, 1.0, 1.0)) * 0.5;
+        if world.hit(&ray, &Interval::with_bounds(0.001, f32::INFINITY), &mut rec) {
+            // If the ray hit an object let the object's material scatter the ray,
+            // this means modifying the ray's direction and color
+            let mut scattered = Ray::default();
+            let mut attenuation = Color::new();
+            if rec.material.scatter(ray, &rec, &mut attenuation, &mut scattered) {
+                // If the ray was scattered, recursively call ray_color
+                return attenuation * self.ray_color(&scattered, world, depth - 1);
+            }
+            return Color::new(); // If the ray was not scattered, return black
         }
 
         let unit_direction = Vec3::normalize(&ray.direction());

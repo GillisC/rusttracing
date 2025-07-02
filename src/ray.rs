@@ -26,6 +26,15 @@ impl Ray {
     }
 }
 
+impl Default for Ray {
+    fn default() -> Self {
+        Self {
+            origin: Point3::new(),
+            dir: Vec3::new(),
+        }
+    }
+}
+
 
 #[cfg(test)]
 mod tests {
